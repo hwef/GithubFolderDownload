@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub文件夹离线下载器</title>
+    <!-- 使用更可靠的CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #111827;
+            --card-bg: #1f2937;
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --accent: #60极5fa;
+            --accent-hover: #3b82f6;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --border: #374151;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 20px;
+            min-height: 100vh;
+            background-image: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 2.2rem;
+            background: linear-gradient(135deg, #3b82f6, #10b981);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+        }
+
+        .input-group {
+            display: flex;
+            position: relative;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 16px;
+            background-color: rgba(31, 41, 55, 0.6);
+            color: var(--text-primary);
+            padding-right: 45px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+
+        button {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--accent);
+            border: 2px solid var(--accent);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 14px;
+        }
+
+        .progress-container {
+            margin-top: 25px;
+            display: none;
+        }
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            align-items: center;
+        }
+
+        .progress-bar {
+            height: 14px;
+            background-color: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #3b82f6);
+            width: 0;
+            transition: width 0.5s ease;
+        }
+
+        .error-box, .warning-box {
+            padding: 16px;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .error-box {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left: 4px solid var(--error);
+            color: var(--error);
+        }
+        
+        .warning-box {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .file-list {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 15px;
+            background-color: var(--card-bg);
+        }
+        
+        .file-item {
+            padding: 12px 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .file-icon {
+            margin-right: 12px;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .file-info {
+            flex-grow: 1;
+            min-width: 0;
+        }
+        
+        .file-name {
+            color: var(--text-primary);
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 16px;
+        }
+        
+        .file-path {
+            font-size: 13px;
+            color: var(--text-secondary);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 3px;
+        }
+        
+        .file-url {
+            font-size: 12px;
+            color: var(--accent);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-top: 3px;
+            cursor: pointer;
+        }
+        
+        .file-item .status {
+            font-size: 0.85em;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: white;
+            min-width: 90px;
+            text-align: center;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        
+        .status-loading { background-color: #3b82f6; }
+        .status-complete { background-color: #10b981; }
+        .status-error { background-color: #ef4444; }
+        
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            font-size: 15极;
+            color: var(--text-secondary);
+            padding: 0 8px;
+        }
+        
+        .final-actions {
+            display:极flex;
+            gap: 15px;
+            margin-top: 25px;
+            justify-content: flex-end;
+        }
+        
+        .result-summary {
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            background: linear-gradient(to right, rgba(16, 185, 129, 0.1), rgba(59, 130, 246, 0.1));
+            border-left: 5px solid var(--accent);
+            display: none;
+        }
+        
+        .summary-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 20px;
+            color: var(--success);
+            font-weight: 600;
+        }
+        
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            min-width: 150px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 28px;
+            font-weight: 700;
+            margin: 8px 0;
+        }
+        
+        .download-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: rgba(59, 130, 246, 0.05);
+            border: 2px dashed var(--accent);
+            text-align: center;
+        }
+        
+        .paste-icon {
+            font-size: 22px;
+            position: absolute;
+            right: 15px;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        
+        .paste-icon:hover {
+            color: var(--accent);
+        }
+        
+        .mirror-panel {
+            background-color: rgba(59, 130, 246, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .mirror-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        
+        .mirror-option {
+            padding: 8px 16px;
+            background-color: rgba(59, 130, 246, 0.2);
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--accent);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .mirror-option:hover {
+            background-color: rgba(59, 130, 246, 0.3);
+        }
+        
+        .mirror-option.active {
+            background-color: var(--accent);
+            color: white;
+        }
+        
+        .mirror-custom {
+            background-color: rgba(16, 185, 129, 0.2);
+            border-color: rgba(16, 185, 129, 0.4);
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+        
+        .note {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            padding: 10px;
+            background-color: rgba(245, 158, 11, 0.1);
+            border-radius: 8px;
+        }
+        
+        .custom-mirror-section {
+            margin-top: 20px;
+        }
+        
+        .custom-mirror-form {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .custom-mirror-form input {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background-color: rgba(31, 41, 55, 0.6);
+            color: var(--text-primary);
+        }
+        
+        .custom-mirror-form button {
+            white-space: nowrap;
+        }
+        
+        .custom-mirror-list {
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: rgba(31, 41, 55, 0.3);
+            border-radius: 8px;
+        }
+        
+        .custom-mirror-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .custom-mirror-name {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .custom-mirror-actions {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .delete-icon {
+            color: var(--error);
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                padding: 15px;
+            }
+            .card {
+                padding: 20px;
+            }
+            .final-actions {
+                flex-direction: column;
+                gap: 10px;
+            }
+            button {
+                width: 100%;
+                justify-content: center;
+            }
+            .file-item {
+                flex-wrap: wrap;
+            }
+            .status {
+                margin-top: 8px;
+                margin-left: 0 !important;
+                width: 100%;
+            }
+            .summary-stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            .mirror-options {
+                flex-direction: column;
+            }
+            .custom-mirror-form {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fab fa-github"></i> GitHub文件夹离线下载器</h1>
+        </header>
+        
+        <div class="card">
+            <div class="form-group">
+                <label for="url">GitHub文件夹URL</label>
+                <div class="input-group">
+                    <input type="text" id="url" placeholder="https://github.com/username/repo/tree/branch/path/to/folder" value="https://github.com/pyenv-win/pyenv-win/tree/master/docs">
+                    <i class="fas fa-paste paste-icon" id="pasteBtn"></i>
+                </div>
+            </div>
+            
+            <div class="mirror-panel">
+                <div>选择镜像源:</div>
+                <div class="mirror-options" id="mirrorOptions">
+                    <div class="mirror-option active" data-url="">
+                        <i class="fab fa-github"></i> GitHub官方
+                    </div>
+                    <div class="mirror-option" data-url="https://mirror.ghproxy.com/">
+                        <i class="fas fa-bolt"></i> ghproxy镜像
+                    </div>
+                    <div class="mirror-option" data-url="https://gh.ddlc.top/">
+                        <i class="fas fa-globe"></i> ddlc镜像
+                    </div>
+                    <div class="mirror-option" data-url="https://gh-proxy.com/">
+                        <i class="fas fa-cloud-download-alt"></i> gh-proxy镜像
+                    </div>
+                </div>
+                
+                <div class="custom-mirror-section">
+                    <div>自定义镜像:</div>
+                    <div class="custom-mirror-form">
+                        <input type="text" id="customMirrorInput" placeholder="https://your-mirror-url.com/">
+                        <button id="addCustomMirrorBtn" class="btn-primary btn-small">
+                            <i class="fas fa-plus"></i> 添加
+                        </button>
+                    </div>
+                    <div class="custom-mirror-list" id="customMirrorList">
+                        <!-- 自定义镜像将在这里显示 -->
+                    </div>
+                </div>
+                
+                <div class="note">
+                    注意: 如果下载失败请尝试更换镜像。自定义镜像格式为: https://mirror.example.com/
+                </div>
+            </div>
+            
+            <button id="downloadBtn" class="btn-primary">
+                <i class="fas fa-download"></i>
+                <span>下载文件夹</span>
+            </button>
+            
+            <div id="progress" class="progress-container">
+                <div class="progress-header">
+                    <span><i class="fas fa-cogs"></i> 准备下载...</span>
+                    <span id="progressText">0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div id="progressBar" class="progress-fill"></div>
+                </div>
+                
+                <div class="progress-stats">
+                    <div><i class="fas fa-check-circle"></i> 成功: <span id="successCount">0</span></div>
+                    <div><i class="fas fa-times-circle"></i> 失败: <span id="errorCount">0</span></div>
+                    <div><i class="fas fa-file"></i> 总数: <span id="totalCount">0</span></div>
+                </div>
+                
+                <div id="fileListContainer" style="display: none;">
+                    <h4 style="margin: 20px 0 15px; display: flex; align-items: center; gap: 10px;">
+                        <i class="fas fa-list"></i> 文件下载列表
+                    </h4>
+                    <div id="fileList" class="file-list"></div>
+                </div>
+                
+                <div id="warningBox" class="warning-box">
+                    <span id="warningText"></span>
+                </div>
+            </div>
+            
+            <div id="resultSummary" class="result-summary">
+                <div class="summary-header">
+                    <i class="fas fa-check-circle"></i>
+                    <span>下载完成!</span>
+                </div>
+                
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <div>成功文件</div>
+                        <div class="stat-number" id="finalSuccessCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div>失败文件</div>
+                        <div class="stat-number" id="finalErrorCount">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div>总计</极div>
+                        <div class="stat-number" id="finalTotalCount">0</div>
+                    </div>
+                </div>
+                
+                <div id="downloadBox" class="download-box">
+                    <h3 style="margin-bottom: 15px;"><i class="fas fa-file-archive"></i> 准备下载ZIP文件</h3>
+                    <p>您的文件夹已打包完成，请点击下方按钮下载</p>
+                    <div class="final-actions">
+                        <button id="downloadZipBtn" class="btn-primary">
+                            <i class="fas fa-download"></i> 下载ZIP文件
+                        </button>
+                        <button id="restartDownloadBtn" class="btn-secondary">
+                            <i class="fas fa-redo"></i> 重新下载
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="error" class="error-box">
+                <span id="errorText"></span>
+            </div>
+        </div>
+        
+        <footer>
+            <p><i class="fas fa-code"></i> © 2023 GitHub文件夹离线下载器 | 完全在浏览器中运行，不存储您的任何数据</p>
+        </footer>
+    </div>
+    
+    <!-- 使用更可靠的CDN加载JSZip库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <script>
+        // 确保DOM完全加载后再执行代码
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM元素
+            const urlInput = document.getElementById('url');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const pasteBtn = document.getElementById('pasteBtn');
+            const progress = document.getElementById('progress');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const errorBox = document.getElementById('error');
+            const errorText = document.getElementById('errorText');
+            const warningBox = document.getElementById('warningBox');
+            const warningText = document.getElementById('warningText');
+            const mirrorOptions = document.querySelectorAll('.mirror-option');
+            const fileList = document.getElementById('fileList');
+            const fileListContainer = document.getElementById('fileListContainer');
+            const successCount = document.getElementById('successCount');
+            const errorCount = document.getElementById('errorCount');
+            const totalCount = document.getElementById('totalCount');
+            const resultSummary = document.getElementById('resultSummary');
+            const finalSuccessCount = document.getElementById('finalSuccessCount');
+            const finalErrorCount = document.getElementById('finalErrorCount');
+            const finalTotalCount = document.getElementById('finalTotalCount');
+            const downloadZipBtn = document.getElementById('downloadZipBtn');
+            const restartDownloadBtn = document.getElementById('restartDownloadBtn');
+            const customMirrorInput = document.getElementById('customMirrorInput');
+            const addCustomMirrorBtn = document.getElementById('addCustomMirrorBtn');
+            const customMirrorList = document.getElementById('customMirrorList');
+            const mirrorOptionsContainer = document.getElementById('mirrorOptions');
+            
+            // 状态变量
+            let currentDownload = null;
+            let zip = null;
+            let selectedMirror = '';
+            let repoName = '';
+            let folderName = '';
+            let baseFolderPath = '';
+            let allFiles = [];
+            let customMirrors = [];
+
+            // 初始化页面
+            function initPage() {
+                // 加载自定义镜像
+                loadCustomMirrors();
+                
+                // 默认选择第一个镜像选项
+                selectedMirror = '';
+                
+                // 如果用户直接访问，设置示例URL
+                if (!urlInput.value) {
+                    urlInput.value = 'https://github.com/pyenv-win/pyenv-win/tree/master/docs';
+                }
+                
+                // 添加事件监听器
+                setupEventListeners();
+                
+                // 添加加载完成提示
+                showWarning('页面加载完成，请输入GitHub文件夹URL开始下载');
+            }
+            
+            // 加载自定义镜像
+            function loadCustomMirrors() {
+                const savedMirrors = localStorage.getItem('customMirrors');
+                if (savedMirrors) {
+                    customMirrors = JSON.parse(savedMirrors);
+                    renderCustomMirrors();
+                } else {
+                    customMirrors = [];
+                }
+            }
+            
+            // 保存自定义镜像
+            function saveCustomMirrors() {
+                localStorage.setItem('customMirrors', JSON.stringify(customMirrors));
+            }
+            
+            // 渲染自定义镜像
+            function renderCustomMirrors() {
+                customMirrorList.innerHTML = '';
+                
+                if (customMirrors.length === 0) {
+                    customMirrorList.innerHTML = '<div style="padding:10px; text-align:center; color:var(--text-secondary)">暂无自定义镜像</div>';
+                    return;
+                }
+                
+                customMirrors.forEach((mirror, index) => {
+                    const mirrorItem = document.createElement('div');
+                    mirrorItem.className = 'custom-mirror-item';
+                    
+                    mirrorItem.innerHTML = `
+                        <div class="custom-mirror-name">${mirror}</div>
+                        <div class="custom-mirror-actions">
+                            <div class="mirror-option mirror-custom" data-url="${mirror}">
+                                <i class="fas fa-check-circle"></i> 使用
+                            </div>
+                            <i class="fas fa-trash delete-icon" data-index="${index}"></i>
+                        </div>
+                    `;
+                    
+                    customMirrorList.appendChild(mirrorItem);
+                });
+                
+                // 添加事件监听器
+                document.querySelectorAll('.custom-mirror-item .mirror-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        selectMirror(option.dataset.url);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-icon').forEach(icon => {
+                    icon.addEventListener('click', (e) => {
+                        const index = parseInt(icon.dataset.index);
+                        if (!isNaN(index) && index < customMirrors.length) {
+                            customMirrors.splice(index, 1);
+                            saveCustomMirrors();
+                            renderCustomMirrors();
+                        }
+                    });
+                });
+            }
+            
+            // 显示警告
+            function showWarning(message) {
+                warningText.textContent = message;
+                warningBox.style.display = 'block';
+                setTimeout(() => warningBox.style.display = 'none', 3000);
+            }
+            
+            // 显示错误
+            function showError(message) {
+                errorText.textContent = message;
+                errorBox.style.display = 'block';
+            }
+            
+            // 隐藏错误
+            function hideError() {
+                errorBox.style.display = 'none';
+            }
+            
+            // 选择镜像
+            function selectMirror(mirrorUrl) {
+                selectedMirror = mirrorUrl;
+                
+                // 更新UI
+                document.querySelectorAll('.mirror-option').forEach(option => {
+                    option.classList.remove('active');
+                });
+                
+                const selectedOption = document.querySelector(`.mirror-option[data-url="${mirrorUrl}"]`);
+                if (selectedOption) {
+                    selectedOption.classList.add('active');
+                }
+                
+                showWarning(`已选择镜像: ${mirrorUrl || 'GitHub官方'}`);
+            }
+            
+            // 添加事件监听器
+            function setupEventListeners() {
+                // 粘贴功能
+                pasteBtn.addEventListener('click', async () => {
+                    try {
+                        const text = await navigator.clipboard.readText();
+                        if (text.includes('github.com')) {
+                            urlInput.value = text;
+                            progress.style.display = 'block';
+                        } else {
+                            showWarning('剪贴板内容不是有效的GitHub URL');
+                        }
+                    } catch (err) {
+                        showWarning('无法访问剪贴板，请手动粘贴');
+                    }
+                });
+                
+                // 镜像源选择
+                mirrorOptions.forEach(option => {
+                    option.addEventListener('click', () => {
+                        selectMirror(option.dataset.url);
+                    });
+                });
+                
+                // 添加自定义镜像
+                addCustomMirrorBtn.addEventListener('click', () => {
+                    const mirrorUrl = customMirrorInput.value.trim();
+                    if (!mirrorUrl) {
+                        showWarning('请输入镜像URL');
+                        return;
+                    }
+                    
+                    // 检查URL格式
+                    if (!mirrorUrl.startsWith('http://') && !mirrorUrl.startsWith('https://')) {
+                        showWarning('镜像URL必须以http://或https://开头');
+                        return;
+                    }
+                    
+                    // 确保镜像URL以斜杠结尾
+                    const formattedUrl = mirrorUrl.endsWith('/') ? mirrorUrl : mirrorUrl + '/';
+                    
+                    // 检查是否已存在
+                    if (customMirrors.includes(formattedUrl)) {
+                        showWarning('该镜像已存在');
+                        return;
+                    }
+                    
+                    // 添加并保存
+                    customMirrors.push(formattedUrl);
+                    saveCustomMirrors();
+                    renderCustomMirrors();
+                    customMirrorInput.value = '';
+                    showWarning('自定义镜像已添加');
+                });
+                
+                // 处理下载过程
+                downloadBtn.addEventListener('click', async () => {
+                    if (currentDownload) return;
+                    
+                    // 重置UI
+                    fileList.innerHTML = '';
+                    hideError();
+                    warningBox.style.display = 'none';
+                    progress.style.display = 'block';
+                    fileListContainer.style.display = 'none';
+                    resultSummary.style.display = 'none';
+                    successCount.textContent = '0';
+                    errorCount.textContent = '0';
+                    totalCount.textContent = '0';
+                    progressBar.style.width = '0';
+                    
+                    // 禁用按钮
+                    downloadBtn.disabled = true;
+                    downloadBtn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> 处理中...`;
+                    
+                    try {
+                        const url = urlInput.value;
+                        if (!url || !url.includes('github.com')) {
+                            throw new Error('请输入有效的GitHub文件夹URL');
+                        }
+                        
+                        // 解析GitHub URL
+                        const { owner, repo, path, branch } = parseGithubUrl(url);
+                        repoName = repo;
+                        folderName = extractFolderName(path);
+                        baseFolderPath = path;
+                        
+                        // 显示准备下载信息
+                        progressText.textContent = `正在连接GitHub...`;
+                        
+                        // 获取文件夹内容
+                        allFiles = [];
+                        await fetchAllFiles(owner, repo, baseFolderPath, branch);
+                        totalCount.textContent = allFiles.length;
+                        
+                        // 检查是否成功获取文件
+                        if (allFiles.length === 0) {
+                            throw new Error('无法获取文件列表，请尝试更换镜像源或稍后再试');
+                        }
+                        
+                        // 创建ZIP文件
+                        zip = new JSZip();
+                        currentDownload = { successCount: 0, errorCount: 0, failedFiles: [] };
+                        
+                        // 显示文件列表
+                        fileListContainer.style.display = 'block';
+                        updateFileList(allFiles);
+                        
+                        // 开始下载文件
+                        await downloadFiles();
+                        
+                        // 尝试重新下载失败的文件
+                        if (currentDownload.failedFiles.length > 0) {
+                            showWarning('正在尝试重新下载失败的文件...');
+                            for (const file of currentDownload.failedFiles) {
+                                await downloadSingleFile(file, true);
+                            }
+                        }
+                        
+                        // 更新最终结果
+                        finalSuccessCount.textContent = currentDownload.successCount;
+                        finalErrorCount.textContent = currentDownload.errorCount;
+                        finalTotalCount.textContent = allFiles.length;
+                        successCount.textContent = currentDownload.successCount;
+                        errorCount.textContent = currentDownload.errorCount;
+                        
+                        // 更新进度
+                        progressBar.style.width = '100%';
+                        progressText.textContent = `下载完成！${currentDownload.successCount}个成功，${currentDownload.errorCount}个失败`;
+                        
+                        // 显示最终结果
+                        resultSummary.style.display = 'block';
+                        
+                    } catch (err) {
+                        showError(err.message);
+                    } finally {
+                        currentDownload = null;
+                        downloadBtn.disabled = false;
+                        downloadBtn.innerHTML = `<i class="fas fa-download"></i> 下载文件夹`;
+                    }
+                });
+                
+                // 修复文件夹名称提取逻辑
+                function extractFolderName(path) {
+                    // 处理路径为空的情况
+                    if (!path) return '文件夹';
+                    
+                    // 拆分路径并移除空值
+                    const parts = path.split('/').filter(part => part.trim() !== '');
+                    
+                    // 如果没有部分或最后部分是分支名（tree之后部分）
+                    if (parts.length === 0) {
+                        return '文件夹';
+                    }
+                    
+                    // 返回最后一部分
+                    return parts[parts.length - 1];
+                }
+                
+                // 获取所有文件（API请求）
+                async function fetchAllFiles(owner, repo, currentPath, branch) {
+                    // 使用镜像URL替换官方API
+                    const apiBase = selectedMirror ? 
+                        `${selectedMirror}https://api.github.com/` :
+                        'https://api.github.com/';
+                    
+                    const apiUrl = `${apiBase}repos/${owner}/${repo}/contents/${currentPath}?ref=${branch}`;
+                    
+                    try {
+                        const response = await fetch(apiUrl, {
+                            headers: {
+                                // 解决403 Forbidden错误
+                                'User-Agent': 'GitHubFolderDownloader/1.0',
+                                'Accept': 'application/vnd.github.v3+json'
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            if (response.status === 403) {
+                                throw new Error('API请求达到限制，请尝试更换镜像源');
+                            }
+                            const errorData = await response.json();
+                            throw new Error(errorData.message || '无法获取文件夹内容');
+                        }
+                        
+                        const contents = await response.json();
+                        await processContentItems(contents, owner, repo, currentPath, branch);
+                        
+                    } catch (err) {
+                        throw new Error('API请求失败：' + err.message + '，请尝试更换镜像源');
+                    }
+                }
+                
+                // 处理内容项目（文件和文件夹）
+                async function processContentItems(items, owner, repo, currentPath, branch) {
+                    for (const item of items) {
+                        if (item.type === 'file') {
+                            const relativePath = item.path.replace(`${baseFolderPath}/`, '');
+                            
+                            // 使用镜像URL替换文件下载地址
+                            const download_url = selectedMirror ? 
+                                selectedMirror + item.download_url : 
+                                item.download_url;
+                            
+                            allFiles.push({
+                                name: item.name,
+                                path: item.path,
+                                download_url: download_url,
+                                size: item.size,
+                                relativePath
+                            });
+                        } else if (item.type === 'dir') {
+                            await fetchAllFiles(owner, repo, item.path, branch);
+                        }
+                    }
+                }
+                
+                // 更新文件列表
+                function updateFileList(files) {
+                    fileList.innerHTML = '';
+                    
+                    files.forEach(file => {
+                        const fileItem = document.createElement('div');
+                        fileItem.className = 'file-item';
+                        fileItem.dataset.file = file.name;
+                        
+                        const extMatch = file.name.match(/\.([0-9a-z]+)$/i);
+                        const ext = extMatch ? extMatch[1].toLowerCase() : '';
+                        const iconClass = getIconClass(ext);
+                        
+                        fileItem.innerHTML = `
+                            <div class="file-icon"><i class="${iconClass}"></i></div>
+                            <div class="file-info">
+                                <div class="file-name">${file.name}</div>
+                                <div class="file-path">${file.relativePath}</div>
+                                <div class="file-url" title="点击复制" data-url="${file.download_url}">
+                                    <i class="fas fa-link"></i> ${truncateUrl(file.download_url, 40)}
+                                </div>
+                            </div>
+                            <span class="status status-loading" id="status-${file.name.replace(/[^a-z0-9]/gi, '_')}">
+                                <i class="fas fa-spinner fa-spin"></i> 等待中
+                            </span>
+                        `;
+                        
+                        fileList.appendChild(fileItem);
+                        
+                        // 添加复制URL功能
+                        const urlEl = fileItem.querySelector('.file-url');
+                        urlEl.addEventListener('click', () => {
+                            const url = urlEl.dataset.url;
+                            navigator.clipboard.writeText(url).then(() => {
+                                const originalText = urlEl.innerHTML;
+                                urlEl.innerHTML = '<i class="fas fa-check"></i> 已复制!';
+                                setTimeout(() => urlEl.innerHTML = originalText, 2000);
+                            });
+                        });
+                    });
+                }
+                
+                // 获取文件图标类
+                function getIconClass(ext) {
+                    const icons = {
+                        js: 'fab fa-js',
+                        html: 'fab fa-html5',
+                        css: 'fab fa-css3-alt',
+                        json: 'fas fa-file-code',
+                        md: 'fab fa-markdown',
+                        png: 'far fa-image',
+                        jpg: 'far fa-image',
+                        jpeg: 'far fa-image',
+                        gif: 'far fa-image',
+                        svg: 'far fa-image',
+                        txt: 'fas fa-file-alt',
+                        py: 'fab fa-python',
+                        java: 'fab fa-java',
+                        php: 'fab fa-php',
+                        default: 'far fa-file'
+                    };
+                    
+                    return icons[ext] || icons.default;
+                }
+                
+                // 截断URL显示
+                function truncateUrl(url, maxLen) {
+                    return url.length > maxLen ? url.substring(0, maxLen-3) + '...' : url;
+                }
+                
+                // 下载文件并添加到ZIP
+                async function downloadFiles() {
+                    const batchSize = 3;
+                    let processedFiles = 0;
+                    
+                    while (processedFiles < allFiles.length && currentDownload) {
+                        const batch = [];
+                        for (let i = 0; i < batchSize && processedFiles < allFiles.length; i++) {
+                            const file = allFiles[processedFiles];
+                            batch.push(downloadSingleFile(file));
+                            processedFiles++;
+                        }
+                        
+                        // 等待当前批次的所有文件完成下载
+                        await Promise.all(batch);
+                        
+                        // 更新进度
+                        const processedCount = currentDownload.successCount + currentDownload.errorCount;
+                        const progressPercent = processedCount / allFiles.length * 100;
+                        progressBar.style.width = `${progressPercent}%`;
+                        progressText.textContent = `文件下载中 (${processedCount}/${allFiles.length})`;
+                    }
+                }
+                
+                // 下载单个文件
+                async function downloadSingleFile(file, isRetry = false) {
+                    const statusEl = document.querySelector(`#status-${file.name.replace(/[^a-z0-9]/gi, '_')}`);
+                    if (statusEl && !isRetry) {
+                        statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 下载中...';
+                        statusEl.className = 'status status-loading';
+                    }
+                    
+                    try {
+                        // 添加Referer标头以避免403错误
+                        const response = await fetch(file.download_url, {
+                            headers: {
+                                'User-Agent': 'GitHubFolderDownloader/1.0',
+                                'Referer': 'https://github.com/',
+                                'Accept': 'application/octet-stream'
+                            }
+                        });
+                        if (!response.ok) throw new Error(`无法下载文件: ${file.name}`);
+                        
+                        const fileContent = await response.blob();
+                        zip.file(file.relativePath, fileContent);
+                        
+                        currentDownload.successCount++;
+                        if (statusEl) {
+                            statusEl.innerHTML = '<i class="fas fa-check"></i> 下载完成';
+                            statusEl.className = 'status status-complete';
+                        }
+                        
+                        // 如果重试成功，从失败列表中移除
+                        if (isRetry) {
+                            const index = currentDownload.failedFiles.indexOf(file);
+                            if (index > -1) {
+                                currentDownload.failedFiles.splice(index, 1);
+                                currentDownload.errorCount--;
+                            }
+                        }
+                    } catch (err) {
+                        if (!isRetry) {
+                            currentDownload.errorCount++;
+                        }
+                        
+                        if (statusEl) {
+                            if (isRetry) {
+                                statusEl.innerHTML = '<i class="fas fa-redo"></i> 重试中...';
+                            } else {
+                                statusEl.innerHTML = '<i class="fas fa-times"></i> 下载失败';
+                                statusEl.className = 'status status-error';
+                            }
+                        }
+                        
+                        // 如果这不是重试，将文件添加到失败列表
+                        if (!isRetry) {
+                            currentDownload.failedFiles.push(file);
+                        }
+                    }
+                }
+                
+                // 下载ZIP文件
+                downloadZipBtn.addEventListener('click', () => {
+                    if (!zip) return;
+                    
+                    // 生成文件名：库名称_文件夹名称
+                    const fileName = `${repoName}_${folderName}.zip`;
+                    
+                    zip.generateAsync({ type: 'blob' }).then(content => {
+                        saveAs(content, fileName);
+                        
+                        // 更新按钮状态
+                        downloadZipBtn.innerHTML = '<i class="fas fa-check"></i> 下载成功！';
+                        downloadZipBtn.style.backgroundColor = '#10b981';
+                        setTimeout(() => {
+                            downloadZipBtn.innerHTML = '<i class="fas fa-download"></i> 下载ZIP文件';
+                            downloadZipBtn.style.backgroundColor = '';
+                        }, 2000);
+                    }).catch(err => {
+                        showError('创建ZIP文件失败：' + err.message);
+                    });
+                });
+                
+                // 重新下载
+                restartDownloadBtn.addEventListener('click', () => {
+                    resultSummary.style.display = 'none';
+                    zip = null;
+                    downloadBtn.click();
+                });
+                
+                // 解析GitHub URL
+                function parseGithubUrl(url) {
+                    const match = url.match(/github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)(?:\/(.*))?/i);
+                    
+                    if (!match) {
+                        throw new Error('无效的GitHub URL格式');
+                    }
+                    
+                    return {
+                        owner: match[1],
+                        repo: match[2],
+                        branch: match[3],
+                        path: match[4] || ''
+                    };
+                }
+            }
+            
+            // 初始化页面
+            initPage();
+        });
+    </script>
+</body>
+</html>
